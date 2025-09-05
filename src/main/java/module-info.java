@@ -12,5 +12,7 @@ module jubayer.chess {
     requires com.almasb.fxgl.all;
 
     opens jubayer.chess to javafx.fxml;
+    opens jubayer.chess.ModelClasses to javafx.fxml;
+    opens jubayer.chess.ContrrollerClasses to javafx.fxml;
     exports jubayer.chess;
 }
