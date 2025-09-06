@@ -13,6 +13,8 @@ module jubayer.chess {
 
     opens jubayer.chess to javafx.fxml;
     opens jubayer.chess.ModelClasses to javafx.fxml;
-    opens jubayer.chess.ContrrollerClasses to javafx.fxml;
+    opens jubayer.chess.ControllerClasses to javafx.fxml;
     exports jubayer.chess;
+    exports jubayer.chess.ModelClasses;
+    exports jubayer.chess.ControllerClasses;
 }
