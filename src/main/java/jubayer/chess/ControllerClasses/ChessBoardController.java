@@ -3,6 +3,9 @@ package jubayer.chess.ControllerClasses;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import com.kitfox.svg.SVGDiagram;
 import com.kitfox.svg.SVGUniverse;
@@ -33,6 +36,7 @@ public class ChessBoardController {
     private Game game;
 
     private Position selectedPosition = null;
+    private Set<Position> highlightedMoves = new HashSet<>();
 
     @FXML
     public void initialize() {
@@ -47,6 +51,18 @@ public class ChessBoardController {
     private void drawBoard() {
         boardGrid.getChildren().clear();
         Square[][] squares = game.getBoard().getSquares();
+
+        // Find king position for current player
+        Position kingPos = null;
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Piece p = squares[row][col].getPiece();
+                if (p instanceof King && p.getColor() == game.getCurrentTurn().getColor()) {
+                    kingPos = p.getPosition();
+                }
+            }
+        }
+        boolean kingInCheck = game.isKingInCheck(game.getCurrentTurn().getColor());
 
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
@@ -64,10 +80,27 @@ public class ChessBoardController {
                 Piece piece = square.getPiece();
                 if (piece != null) {
                     ImageView pieceImageView = getPieceSVGImageView(piece);
+                    // Neon glow for king in check
+                    if (piece instanceof King && kingInCheck && kingPos != null && kingPos.getRow() == row && kingPos.getCol() == col) {
+                        javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
+                        glow.setColor(javafx.scene.paint.Color.RED);
+                        glow.setRadius(20);
+                        glow.setSpread(0.7);
+                        pieceImageView.setEffect(glow);
+                    }
                     if (pieceImageView != null) {
                         cell.getChildren().add(pieceImageView);
                     }
                 }
+
+                // Highlight possible moves with a dot
+                Position cellPos = new Position(row, col);
+                if (highlightedMoves.contains(cellPos)) {
+                    javafx.scene.shape.Circle dot = new javafx.scene.shape.Circle(8, javafx.scene.paint.Color.rgb(30, 144, 255, 0.5));
+                    dot.setMouseTransparent(true);
+                    cell.getChildren().add(dot);
+                }
+
                 final int r = row, c = col;
                 cell.setOnMouseClicked(e -> handleCellClick(new Position(r, c)));
                 boardGrid.add(cell, col, row);
@@ -120,17 +153,6 @@ public class ChessBoardController {
         }
     }
 
-    // private String getPieceUnicode(Piece piece) {
-    //     // Basic Unicode for chess pieces
-    //     if (piece instanceof King)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♔" : "♚";
-    //     if (piece instanceof Queen)  return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♕" : "♛";
-    //     if (piece instanceof Rook)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♖" : "♜";
-    //     if (piece instanceof Bishop) return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♗" : "♝";
-    //     if (piece instanceof Knight) return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♘" : "♞";
-    //     if (piece instanceof Pawn)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♙" : "♟";
-    //     return "?";
-    // }
-
     private void handleCellClick(Position pos) {
         Piece clickedPiece = game.getBoard().getPieceAt(pos);
 
@@ -138,20 +160,46 @@ public class ChessBoardController {
             // Select a piece
             if (clickedPiece != null && clickedPiece.getColor() == game.getCurrentTurn().getColor()) {
                 selectedPosition = pos;
-                // Optionally: highlight possible moves
+                // Highlight only legal moves (that block check if in check)
+                highlightedMoves.clear();
+                List<Move> moves = game.getLegalMoves(clickedPiece);
+                if (moves != null) {
+                    for (Move m : moves) {
+                        highlightedMoves.add(m.getTo());
+                    }
+                }
+                drawBoard();
             }
         } else {
             // Try to make a move
             Piece selectedPiece = game.getBoard().getPieceAt(selectedPosition);
             if (selectedPiece != null) {
-                Move move = new Move(selectedPosition, pos, clickedPiece);
-                if (game.makeMove(move)) {
-                    // Move successful
-                    selectedPosition = null;
-                    drawBoard();
+                List<Move> legalMoves = game.getLegalMoves(selectedPiece);
+                boolean found = false;
+                for (Move m : legalMoves) {
+                    if (m.getTo().equals(pos)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) {
+                    Move move = new Move(selectedPosition, pos, clickedPiece);
+                    if (game.makeMove(move)) {
+                        // Move successful
+                        selectedPosition = null;
+                        highlightedMoves.clear();
+                        drawBoard();
+                    } else {
+                        // Invalid move, reset selection
+                        selectedPosition = null;
+                        highlightedMoves.clear();
+                        drawBoard();
+                    }
                 } else {
-                    // Invalid move, reset selection
+                    // Not a legal move
                     selectedPosition = null;
+                    highlightedMoves.clear();
+                    drawBoard();
                 }
             }
         }
