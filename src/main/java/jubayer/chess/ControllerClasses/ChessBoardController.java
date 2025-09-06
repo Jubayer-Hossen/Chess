@@ -1,7 +1,16 @@
 package jubayer.chess.ControllerClasses;
 
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.net.URI;
+
+import com.kitfox.svg.SVGDiagram;
+import com.kitfox.svg.SVGUniverse;
+
+import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
@@ -46,19 +55,19 @@ public class ChessBoardController {
                 Rectangle rect = new Rectangle(60, 60);
                 // Alternate color
                 if ((row + col) % 2 == 0) {
-                    rect.setFill(javafx.scene.paint.Color.LIMEGREEN);
+                    rect.setFill(javafx.scene.paint.Color.ALICEBLUE);
                 } else {
-                    rect.setFill(javafx.scene.paint.Color.DEEPSKYBLUE);
+                    rect.setFill(javafx.scene.paint.Color.DIMGRAY);
                 }
                 cell.getChildren().add(rect);
 
                 Piece piece = square.getPiece();
                 if (piece != null) {
-                    Label pieceLabel = new Label(getPieceUnicode(piece));
-                    pieceLabel.setFont(new javafx.scene.text.Font(32));
-                    cell.getChildren().add(pieceLabel);
+                    ImageView pieceImageView = getPieceSVGImageView(piece);
+                    if (pieceImageView != null) {
+                        cell.getChildren().add(pieceImageView);
+                    }
                 }
-
                 final int r = row, c = col;
                 cell.setOnMouseClicked(e -> handleCellClick(new Position(r, c)));
                 boardGrid.add(cell, col, row);
@@ -66,16 +75,61 @@ public class ChessBoardController {
         }
     }
 
-    private String getPieceUnicode(Piece piece) {
-        // Basic Unicode for chess pieces
-        if (piece instanceof King)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♔" : "♚";
-        if (piece instanceof Queen)  return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♕" : "♛";
-        if (piece instanceof Rook)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♖" : "♜";
-        if (piece instanceof Bishop) return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♗" : "♝";
-        if (piece instanceof Knight) return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♘" : "♞";
-        if (piece instanceof Pawn)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♙" : "♟";
-        return "?";
+    // Helper to get the SVG file name for a piece
+    private String getPieceSVGFileName(Piece piece) {
+        String color = piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "White" : "Black";
+        String type;
+        if (piece instanceof King) type = "King";
+        else if (piece instanceof Queen) type = "Queen";
+        else if (piece instanceof Rook) type = "Rook";
+        else if (piece instanceof Bishop) type = "Bishop";
+        else if (piece instanceof Knight) type = "Knight";
+        else if (piece instanceof Pawn) type = "Pawn";
+        else type = "Unknown";
+        return color + type + ".svg.svg";
     }
+
+    // Helper to load SVG and convert to ImageView using SVG Salamander
+    private ImageView getPieceSVGImageView(Piece piece) {
+        try {
+            String fileName = getPieceSVGFileName(piece);
+            String resourcePath = "/jubayer/chess/Pieces/" + fileName;
+            InputStream svgStream = getClass().getResourceAsStream(resourcePath);
+            if (svgStream == null) return null;
+
+            // Load SVG with Salamander
+            SVGUniverse svgUniverse = new SVGUniverse();
+            URI svgUri = svgUniverse.loadSVG(svgStream, fileName);
+            SVGDiagram diagram = svgUniverse.getDiagram(svgUri);
+            // Render SVG to BufferedImage
+            int width = 48, height = 48;
+            BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            java.awt.Graphics2D g2 = bufferedImage.createGraphics();
+            diagram.setDeviceViewport(new java.awt.Rectangle(0, 0, width, height));
+            diagram.render(g2);
+            g2.dispose();
+            // Convert to JavaFX Image
+            Image fxImage = SwingFXUtils.toFXImage(bufferedImage, null);
+            ImageView imageView = new ImageView(fxImage);
+            imageView.setFitWidth(48);
+            imageView.setFitHeight(48);
+            return imageView;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // private String getPieceUnicode(Piece piece) {
+    //     // Basic Unicode for chess pieces
+    //     if (piece instanceof King)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♔" : "♚";
+    //     if (piece instanceof Queen)  return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♕" : "♛";
+    //     if (piece instanceof Rook)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♖" : "♜";
+    //     if (piece instanceof Bishop) return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♗" : "♝";
+    //     if (piece instanceof Knight) return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♘" : "♞";
+    //     if (piece instanceof Pawn)   return piece.getColor() == jubayer.chess.ModelClasses.Color.WHITE ? "♙" : "♟";
+    //     return "?";
+    // }
 
     private void handleCellClick(Position pos) {
         Piece clickedPiece = game.getBoard().getPieceAt(pos);
