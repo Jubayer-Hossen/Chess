@@ -23,7 +23,45 @@ public class King extends Piece {
                 }
             }
         }
-        // Castling not implemented here
+
+        // Castling logic
+        if (!this.hasMoved()) {
+            int row = this.position.getRow();
+            // King-side castling
+            if (canCastle(board, true)) {
+                moves.add(new Move(position, new Position(row, 6), null, true));
+            }
+            // Queen-side castling
+            if (canCastle(board, false)) {
+                moves.add(new Move(position, new Position(row, 2), null, true));
+            }
+        }
         return moves;
+    }
+
+    private boolean canCastle(Board board, boolean kingSide) {
+        int row = this.position.getRow();
+        int col = this.position.getCol();
+        if (kingSide) {
+            // Check squares between king and rook
+            for (int c = col + 1; c < 7; c++) {
+                if (board.isOccupied(new Position(row, c))) return false;
+            }
+            Piece rook = board.getPieceAt(new Position(row, 7));
+            if (rook instanceof Rook && rook.getColor() == this.color && !rook.hasMoved()) {
+                // TODO: Check if king is in check or passes through check
+                return true;
+            }
+        } else {
+            for (int c = col - 1; c > 0; c--) {
+                if (board.isOccupied(new Position(row, c))) return false;
+            }
+            Piece rook = board.getPieceAt(new Position(row, 0));
+            if (rook instanceof Rook && rook.getColor() == this.color && !rook.hasMoved()) {
+                // TODO: Check if king is in check or passes through check
+                return true;
+            }
+        }
+        return false;
     }
 }

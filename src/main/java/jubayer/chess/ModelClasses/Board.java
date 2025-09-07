@@ -62,9 +62,37 @@ public class Board {
 
     public void movePiece(Move move) {
         Piece movingPiece = getPieceAt(move.getFrom());
-        setPieceAt(move.getFrom(), null);
-        setPieceAt(move.getTo(), movingPiece);
-        if (movingPiece != null) movingPiece.move(move.getTo());
+        // Handle castling
+        if (movingPiece instanceof King && move.isCastling()) {
+            int row = move.getFrom().getRow();
+            if (move.getTo().getCol() == 6) { // King-side castling
+                // Remove rook first
+                Piece rook = getPieceAt(new Position(row, 7));
+                setPieceAt(new Position(row, 7), null);
+                // Move king
+                setPieceAt(move.getFrom(), null);
+                setPieceAt(move.getTo(), movingPiece);
+                movingPiece.move(move.getTo());
+                // Place rook
+                setPieceAt(new Position(row, 5), rook);
+                if (rook != null) rook.move(new Position(row, 5));
+            } else if (move.getTo().getCol() == 2) { // Queen-side castling
+                // Remove rook first
+                Piece rook = getPieceAt(new Position(row, 0));
+                setPieceAt(new Position(row, 0), null);
+                // Move king
+                setPieceAt(move.getFrom(), null);
+                setPieceAt(move.getTo(), movingPiece);
+                movingPiece.move(move.getTo());
+                // Place rook
+                setPieceAt(new Position(row, 3), rook);
+                if (rook != null) rook.move(new Position(row, 3));
+            }
+        } else {
+            setPieceAt(move.getFrom(), null);
+            setPieceAt(move.getTo(), movingPiece);
+            movingPiece.move(move.getTo());
+        }
     }
 
     public Square[][] getSquares() { return squares; }

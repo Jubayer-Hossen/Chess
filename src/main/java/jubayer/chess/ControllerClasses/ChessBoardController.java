@@ -36,7 +36,7 @@ public class ChessBoardController {
     private Game game;
 
     private Position selectedPosition = null;
-    private Set<Position> highlightedMoves = new HashSet<>();
+    private final Set<Position> highlightedMoves = new HashSet<>();
 
     @FXML
     public void initialize() {
@@ -102,7 +102,7 @@ public class ChessBoardController {
                 }
 
                 final int r = row, c = col;
-                cell.setOnMouseClicked(e -> handleCellClick(new Position(r, c)));
+                cell.setOnMouseClicked(_ -> handleCellClick(new Position(r, c)));
                 boardGrid.add(cell, col, row);
             }
         }
@@ -148,7 +148,7 @@ public class ChessBoardController {
             imageView.setFitHeight(48);
             return imageView;
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error loading SVG for piece: " + e.getMessage());
             return null;
         }
     }
@@ -175,16 +175,15 @@ public class ChessBoardController {
             Piece selectedPiece = game.getBoard().getPieceAt(selectedPosition);
             if (selectedPiece != null) {
                 List<Move> legalMoves = game.getLegalMoves(selectedPiece);
-                boolean found = false;
+                Move moveToPlay = null;
                 for (Move m : legalMoves) {
                     if (m.getTo().equals(pos)) {
-                        found = true;
+                        moveToPlay = m;
                         break;
                     }
                 }
-                if (found) {
-                    Move move = new Move(selectedPosition, pos, clickedPiece);
-                    if (game.makeMove(move)) {
+                if (moveToPlay != null) {
+                    if (game.makeMove(moveToPlay)) {
                         // Move successful
                         selectedPosition = null;
                         highlightedMoves.clear();
