@@ -156,22 +156,22 @@ public class ChessBoardController {
     private void handleCellClick(Position pos) {
         Piece clickedPiece = game.getBoard().getPieceAt(pos);
 
-        if (selectedPosition == null) {
-            // Select a piece
-            if (clickedPiece != null && clickedPiece.getColor() == game.getCurrentTurn().getColor()) {
-                selectedPosition = pos;
-                // Highlight only legal moves (that block check if in check)
-                highlightedMoves.clear();
-                List<Move> moves = game.getLegalMoves(clickedPiece);
-                if (moves != null) {
-                    for (Move m : moves) {
-                        highlightedMoves.add(m.getTo());
-                    }
+        // If clicking on a piece of your own color, always select it and show its moves
+        if (clickedPiece != null && clickedPiece.getColor() == game.getCurrentTurn().getColor()) {
+            selectedPosition = pos;
+            highlightedMoves.clear();
+            List<Move> moves = game.getLegalMoves(clickedPiece);
+            if (moves != null) {
+                for (Move m : moves) {
+                    highlightedMoves.add(m.getTo());
                 }
-                drawBoard();
             }
-        } else {
-            // Try to make a move
+            drawBoard();
+            return;
+        }
+
+        // Otherwise, try to make a move if a piece is already selected
+        if (selectedPosition != null) {
             Piece selectedPiece = game.getBoard().getPieceAt(selectedPosition);
             if (selectedPiece != null) {
                 List<Move> legalMoves = game.getLegalMoves(selectedPiece);
